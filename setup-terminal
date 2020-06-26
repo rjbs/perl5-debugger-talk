@@ -1,0 +1,5 @@
+#!/usr/bin/osascript
+tell application "iTerm2"
+  set rows of current session of current tab of current window to 33
+  set columns of current session of current tab of current window to 85
+end tell

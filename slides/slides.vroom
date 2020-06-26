@@ -1,0 +1,359 @@
+---- config
+# Basic config options.
+title: how to debug perl
+indent: 5
+auto_size: 1
+# height: 18
+# width: 69
+vim_opts: '-u NONE'
+skip: 0
+
+vimrc: |
+  colorscheme manxome
+
+# The following options are for Gvim usage.
+# vim: gvim
+# gvimrc: |
+#   set fuopt=maxhorz,maxvert
+#   set guioptions=egmLtT
+#   set guifont=Bitstream_Vera_Sans_Mono:h18
+#   set guicursor=a:blinkon0-ver25-Cursor
+#   colorscheme manxome
+
+---- center
+
+how to debug perl
+by rjbs @ Fastmail
+
+----
+== how to debug perl
+
++• step 1: add more print statements
++• step 2: that's it; you're done
+
+----
+== how to use the perl debugger
+
+• 99% of the time, my REPL of choice
++• 🆁  ead 🅴  valuate 🅿  rint 🅻  oop
++• you type stuff and the repl evalutes it
+
+----
+== how to start the perl debugger
+
+• perl -de0
++• there are other repls (Reply is neat)
++• and other debugger (Devel::ebug is neat)
++• but basically nobody uses them
++• so don't ask
+
+----
+== the most REPL-y of commands
+
++EXPR - evaluate an expression
++p⃣   print a value
++x⃣   dump a value
++q⃣   quit
+
+---- center
+
+[ perl repl demo goes here ]
+
+----
+== how does it work?
+
+• perl -d sets a bunch of bits on $^P
++• for which see perldoc -v '$^P'
++• key flag: 0x02
++  • means: call &DB::DB for each statement
+
+---- center
+Devel::Trace
+(the stupidest debugger you can write)
+
+---- perl
+---- include ../Trace.pm
+
+----
+== -d:Trace
+
+• -d:Trace sets up $^P and loads Devel::Trace
++• -d (with no :Whatever) loads perl5db.pl
++• ⚠️  whatever you do, do not read perl5db.pl
++• but you can read perldoc perl5db.pl
++• or, better, perldoc perldebguts
++• or, much better, perldoc perldebug
+
+----
+== perl5db.pl
+
+• it implements sub DB::DB
++• which runs a readline loop, dispatching commands
++• …some of which means "go ahead and run the next line"
+
+----
+== stepping through your code
+
++ n⃣  evaluate the next statement
++ s⃣  step down into the next statement
++ c⃣  continue until breakpoint
++ ⮐  step the same was as last time
++ t⃣  EXPR trace through evaluation of expr
+
+---- perl
+---- include ../01/prng.pl
+
+----
+== prng.pl
+
+• first, let's try running it
+
+---- center
+
+[ prng.pl demo goes here ]
+
+---- center
+
+once again, false 0 is to blame!
+
+---- perl
+---- include ../02/prng.pl
+
+----
+== let's get real
+
+• this is not realistic software
++• because if it was, we would have made a library
+
+---- perl
+---- include ../03/PRNG.pm
+
+---- perl
+---- include ../03/prng.pl
+
+----
+== look before you step
+
+l⃣      - list the next "window" of lines
++l⃣  #   - list the code at the given line
++l⃣  #-# - list the range of lines
++l⃣  sub - list the named subroutine
++v⃣      - view a window around the current line
++.⃣      - reset the current line to execution context
+
++(look at that adorable little keycap for "."!)
+
+---- center
+
+[ lookin' around demo goes here ]
+
+----
+== and once you look around
+
+f⃣  STR - change the file we're looking at
+/⃣  PAT - search forward for /PAT/
+c⃣   #  - continue running until the given line
+t⃣   n  - turn tracing off or on
+
+---- center
+
+[ f/ct demo goes here ]
+
+----
+== breakpoints and actions
+
+• what even are breakpoints
++• well, "c" was a breakpoint
+
+----
+== breakpoints and actions
+
+b⃣             - add a breakpoint on the current line
++L⃣  b         - list all breakpoints
++b⃣  #         - break at the given line
++b⃣  sub       - break at the given sub
++b⃣  # COND    - break at the given line if COND true
+b⃣  sub COND  - break at the given sub  if COND true
+
++B⃣  #         - delete breakpoint at given line in current file
+B⃣            - delete all breakpoints
+
++a⃣  # PERL    - run the perl before executing line
++L⃣  a         - list all actions
+
++A⃣  #         - delete actions at given line in current file
+A⃣  *         - delete all actions
+
++L⃣            - list all breakpoints and actions
+
+---- center
+
+[ breakpoint / action demo goes here ]
+
+---- center
+
+remember, kids, always label your loops
+
+---- perl
+---- include ../04/prng.pl
+
+----
+== save and source
+
+save FILE   - write your command history to a file
+source FILE - run the commands from a file
++R⃣           - restart debugger (caveats apply!)
++rerun N     - rerun current session to line N (or -N!)
+
+---- center
+
+[ let's try that again ]
+
+----
+== as long as we're editing files…
+
+• I said the debugger let us avoid editing source (to add prints)
++• true, but...
++• if we're vimming stuff and restarting, anyway, why not edit the code?
++• okay, I'm convinced!  let's put debugger helpers in code
+
+---- perl
+---- include ../05/PRNG.pm
+
+---- center
+[ $DB::single demo ]
+
+----
+== that was underwhelming
+
+• in practice, there are a few other variables
+• but my finding is that they're confusing or broken or both
+
+----
+== a useful miscellany
+
+|⃣  DEBUGCMD - run the debugger command, pipe the output to $PAGER
++H⃣           - list command history (obnoxiously incomplete)
++!⃣  NUM      - rerun numbered command
++!⃣  -NUM     - rerun Nth command from end (but note above!)
+
++=⃣ ALIAS VALUE - set up an alias
+
+---- perl
+---- include ../06/PRNG.pm
+
+---- center
+[ alias demo ]
+
+---- center
+good grief that was terrible
+
+----
+# why would I use aliases???
+
+• I almost never use = aliases (but I do)
++• but there another way!
+
+---- perl
+---- include /Users/rjbs/.perldb
+
+----
+# wtf was that?
+
+• ~/.perldb is sourced when you start the debugger
++• and it can do ✨anything✨
++• here, it was creating an alias
++• but this kind of aliases does s/// on the input line (!?)
++• you can tell the difference with =⃣
+
+---- center
+
+[ alias type demo ]
+
+---- center
+
+I think we could all use a drink right about now.
+
+---- center
+
+How about Møøse Juice?
+
+---- perl
+---- include ../07/PRNG.pm
+
+---- perl
+---- include ../07/KeepsLog.pm
+
+---- perl
+---- include ../07/PRNG/WithLog.pm
+
+---- perl
+---- include ../07/prng.pl
+
+----
+== looking around more
+
+m⃣       - inspect an object's methods
+
++S⃣       - list all subroutines
+S⃣  PAT  - list subroutines matching pattern
+
++M⃣       - show loaded module versions
+
++V⃣       - list all vars in current package
+V⃣  PKG  - list all vars in named package
+
++y⃣       - list all lexicals visible here
+
++T⃣       - stack trace (but a weird one!)
+
++r⃣       - return from current sub
+
+---- center
+[ møøse juice demo ]
+
+---- center
+there is a whole lot more you can do with the debugger
+
+---- center
+sometimes, it even works
+
+---- center
+and sometimes, it even works how you expect
+
+----
+== help!
+
++h⃣       - help; it's awful
+h⃣  CMD  - detailed help; useful, but pretty bad
+h⃣  h    - big listing of help, meh, see perldoc perl5db.pl
+
+----
+== I wanted to talk about…
+
+• pre- and post- prompt commands
+• watch expressions
+• tracing
+• how to understand <DB> vs. <<DB>>
+• afterinit() and watchfunction()
+• remote debugging
+
+---- center
+but I didn't
+
+---- center
+you're welcome
+
+---- center
+and I'm sorry
+
+---- center
+Thank you!
+
+Big thanks to my Patreon sponsors.
+
+Don't forget to like, comment, and subscribe to my channel.
+
+---- center
+¿Any questions?
+
